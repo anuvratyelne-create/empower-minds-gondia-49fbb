@@ -179,6 +179,113 @@
     });
   }
 
+  function initSocialProofFilter() {
+    var filters = document.querySelectorAll('.social-proof__filter');
+    var items = document.querySelectorAll('.social-proof__item');
+    var grid = document.querySelector('.social-proof__grid');
+    var loadMoreBtn = document.querySelector('.social-proof__load-more');
+    var moreCountEl = document.querySelector('.social-proof__more-count');
+
+    function updateLoadMoreButton() {
+      if (!loadMoreBtn || !grid) return;
+
+      var isCollapsed = grid.classList.contains('social-proof__grid--collapsed');
+      var visibleItems = document.querySelectorAll('.social-proof__item:not(.hidden)');
+      var totalVisible = visibleItems.length;
+
+      // Get how many are shown based on screen size
+      var shownCount = 6; // mobile
+      if (window.innerWidth >= 600 && window.innerWidth < 900) {
+        shownCount = 9;
+      } else if (window.innerWidth >= 900) {
+        shownCount = totalVisible; // show all on desktop
+      }
+
+      var hiddenCount = Math.max(0, totalVisible - shownCount);
+
+      if (isCollapsed && hiddenCount > 0 && window.innerWidth < 900) {
+        loadMoreBtn.classList.remove('hidden');
+        if (moreCountEl) {
+          moreCountEl.textContent = '+' + hiddenCount;
+        }
+      } else {
+        loadMoreBtn.classList.add('hidden');
+      }
+    }
+
+    // Load more button click
+    if (loadMoreBtn && grid) {
+      loadMoreBtn.addEventListener('click', function() {
+        grid.classList.remove('social-proof__grid--collapsed');
+        grid.classList.add('social-proof__grid--expanded');
+        loadMoreBtn.classList.add('hidden');
+
+        // Animate newly visible items
+        if (!reducedMotion) {
+          var allItems = document.querySelectorAll('.social-proof__item:not(.hidden)');
+          allItems.forEach(function(item, index) {
+            if (index >= 6) {
+              item.classList.remove('animating');
+              void item.offsetWidth;
+              item.style.animationDelay = ((index - 6) * 0.05) + 's';
+              item.classList.add('animating');
+            }
+          });
+        }
+      });
+    }
+
+    filters.forEach(function(filter) {
+      filter.addEventListener('click', function() {
+        var selectedCategory = this.getAttribute('data-category');
+
+        filters.forEach(function(f) {
+          f.classList.remove('active');
+          f.setAttribute('aria-selected', 'false');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-selected', 'true');
+
+        // Reset to collapsed state when filter changes
+        if (grid) {
+          grid.classList.add('social-proof__grid--collapsed');
+          grid.classList.remove('social-proof__grid--expanded');
+        }
+
+        var visibleItems = [];
+        items.forEach(function(item) {
+          var category = item.getAttribute('data-category') || '';
+          var shouldShow = selectedCategory === 'all' || category === selectedCategory;
+
+          if (shouldShow) {
+            item.classList.remove('hidden');
+            visibleItems.push(item);
+          } else {
+            item.classList.add('hidden');
+            item.classList.remove('animating');
+          }
+        });
+
+        if (!reducedMotion) {
+          visibleItems.forEach(function(item, index) {
+            item.classList.remove('animating');
+            void item.offsetWidth;
+            item.style.animationDelay = (index * 0.06) + 's';
+            item.classList.add('animating');
+          });
+        }
+
+        updateLoadMoreButton();
+      });
+    });
+
+    // Initial update
+    updateLoadMoreButton();
+
+    // Update on resize
+    window.addEventListener('resize', updateLoadMoreButton);
+  }
+
   function initStepsAnimation() {
     var steps = document.querySelectorAll('.step');
     var lineFill = document.querySelector('.steps__line-fill');
@@ -249,6 +356,7 @@
   function init() {
     initHeader();
     initServiceFilter();
+    initSocialProofFilter();
     initBreathingOrb();
     initStepsAnimation();
     initSmoothScroll();
